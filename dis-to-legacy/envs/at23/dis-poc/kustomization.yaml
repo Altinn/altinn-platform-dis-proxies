@@ -16,18 +16,6 @@ patches:
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
-        value: 50
-      - op: replace
-        path: /spec/rules/0/backendRefs/1/weight
-        value: 50
-  # kubewrapper-two: not started.
-  - target:
-      group: policy.linkerd.io
-      kind: HTTPRoute
-      name: kubewrapper-two
-    patch: |
-      - op: replace
-        path: /spec/rules/0/backendRefs/0/weight
         value: 100
       - op: replace
         path: /spec/rules/0/backendRefs/1/weight
