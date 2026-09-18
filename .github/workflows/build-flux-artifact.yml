@@ -29,7 +29,7 @@ on:
 
 env:
   REGISTRY: altinncr.azurecr.io
-  REPOSITORY: dis/legacy-proxies
+  REPOSITORY: disproxies/legacy-proxies
   # What goes into the artifact: the whole deployable tree, so that the relative
   # paths between envs/, teams/ and platform/ still resolve in-cluster.
   ARTIFACT_PATH: ./dis-to-legacy
@@ -87,9 +87,9 @@ jobs:
         id: setup_flux_acr
         uses: dis-way/actions/flux/setup-flux-acr@8a0034943836baaa34c7e220854f950ce3a5f370 # main
         with:
-          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID_ADMINSERVICES_PROD }}
-          azure_app_id: ${{ secrets.AZURE_CLIENT_ID_ADMINSERVICES_PROD }}
-          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          azure_subscription_id: ${{ secrets.DIS_SYNCROOT_AZURE_SUBSCRIPTION_ID }}
+          azure_app_id: ${{ secrets.DIS_SYNCROOT_AZURE_CLIENT_ID }}
+          azure_tenant_id: ${{ secrets.DIS_SYNCROOT_AZURE_TENANT_ID }}
 
       - name: Build and push the artifact
         run: |

@@ -7,7 +7,7 @@ Configuration of the proxies use while migrating to DIS
 Every push to `main` publishes `dis-to-legacy/` as a Flux OCI artifact:
 
 ```
-altinncr.azurecr.io/dis/legacy-proxies
+altinncr.azurecr.io/disproxies/legacy-proxies
 ```
 
 with two tags — the short commit sha, which is immutable and what you roll back
@@ -25,7 +25,7 @@ metadata:
   name: legacy-proxies
 spec:
   interval: 5m
-  url: oci://altinncr.azurecr.io/dis/legacy-proxies
+  url: oci://altinncr.azurecr.io/disproxies/legacy-proxies
   ref:
     tag: main
   provider: azure
