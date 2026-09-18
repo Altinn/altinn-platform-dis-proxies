@@ -1,0 +1,45 @@
+# The weighted split for 'altinn-receipt'.
+#
+# Committed with a single backend: everything goes to the legacy cluster through
+# this service's own nginx pod. The migrated app has no Service yet, so it is
+# left commented out below rather than listed at weight 0 -- a backendRef to a
+# Service that does not exist does not resolve. Uncomment it, in the same commit
+# that gives it a real namespace, once the app team has deployed on their side.
+#
+# Weights are relative, not percentages.
+#
+# THIS IS THE ONLY FILE A TEAM EDITS TO SHIFT TRAFFIC.
+apiVersion: policy.linkerd.io/v1beta3
+kind: HTTPRoute
+metadata:
+  name: altinn-receipt
+spec:
+  parentRefs:
+    # Local on purpose. A parentRef in another namespace makes this a "consumer
+    # route", scoped to callers in this route's namespace -- the legacy callers
+    # would stop matching and hit the endpoint-less anchor instead.
+    - group: core
+      kind: Service
+      name: altinn-receipt
+      port: 80
+  rules:
+    - backendRefs:
+        # Out to the legacy cluster, through this service's own nginx pod.
+        - name: altinn-receipt-proxy
+          port: 80
+          weight: 100
+
+        # The migrated app, in ITS OWN namespace. Deployed by the team's normal
+        # pipeline, not created here. It keeps its real name: the anchor above
+        # is in a different namespace, so there is no collision.
+        #
+        # The target namespace runs deny-by-default like everything else, so the
+        # app team must authorize the callers' identities on their side before
+        # any weight moves here -- the identity presented there is the ORIGINAL
+        # caller's, since this leg never passes through nginx. See invariant 8
+        # in CLAUDE.md.
+
+        # - name: altinn-receipt
+        #   namespace: <migrated-receipt-namespace>
+        #   port: 80
+        #   weight: 0

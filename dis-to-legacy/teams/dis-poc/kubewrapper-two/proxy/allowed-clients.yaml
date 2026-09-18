@@ -1,0 +1,16 @@
+# Who may call 'kubewrapper-two'. THIS TEAM OWNS THIS FILE.
+#
+# Identity comes from the caller's ServiceAccount. Because every migrated
+# service shares one namespace, callers are named:
+#   <their-serviceaccount>.default.serviceaccount.identity.linkerd.cluster.local
+#
+# It lives under proxy/ because namePrefix has to reach it: the name below
+# becomes 'kubewrapper-two-allowed-clients', which keeps this allow-list from
+# colliding with another service's in the shared namespace.
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: allowed-clients
+spec:
+  identities:
+    - "poc-client.default.serviceaccount.identity.linkerd.cluster.local"

@@ -1,0 +1,18 @@
+# Backend 1: forwards to the legacy cluster. Not called directly by consumers,
+# only referenced as a weighted backendRef from the HTTPRoute.
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxy
+  labels:
+    app.kubernetes.io/name: proxy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: proxy
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+      appProtocol: http

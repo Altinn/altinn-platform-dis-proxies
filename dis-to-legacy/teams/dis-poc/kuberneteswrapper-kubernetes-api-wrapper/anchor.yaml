@@ -1,0 +1,24 @@
+# Anchor Service.
+#
+# This is the address callers use -- it deliberately keeps the legacy service
+# name. It has NO selector and therefore no endpoints: it exists only to give
+# the Linkerd HTTPRoute a parent to attach to, and all real traffic is sent to
+# the weighted backends in httproute.yaml.
+#
+# Consequence, and one of the things this POC is meant to verify: a caller whose
+# pod is NOT meshed gets no endpoints and fails. Only meshed callers see the
+# split, because Linkerd enforces outbound policy in the *client's* proxy.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuberneteswrapper-kubernetes-api-wrapper
+spec:
+  type: ClusterIP
+  # No selector on purpose. Must still be a ClusterIP (not headless) so that
+  # Linkerd can key outbound policy on the VIP.
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http

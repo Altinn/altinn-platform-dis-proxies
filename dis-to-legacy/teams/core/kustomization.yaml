@@ -1,0 +1,31 @@
+# core: 5 services migrating out of the legacy cluster.
+#
+# NOTE the namespace: every team renders into the SAME namespace, mirroring the
+# legacy cluster's single one. That is what lets in-cluster callers keep using
+# bare service names like http://altinn-events with no config change. The
+# namespace itself is set by the environment overlay in envs/, not here.
+#
+# Consequence worth knowing: service names are unique across ALL teams, not just
+# within this folder. That already holds by construction -- they were unique in
+# the legacy cluster's single namespace.
+#
+# Adding another migrated service is one more line under resources plus a folder
+# copied from a sibling. Nothing in platform/ changes.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: dis-legacy-proxy
+    includeSelectors: false
+    includeTemplates: true
+
+# The namespace and the per-cluster upstream come from the environment overlay
+# in envs/, which is the deployable unit. This folder is composed into one.
+resources:
+  # One folder per migrated service.
+  - altinn-events
+  - altinn-notifications
+  - altinn-notifications-email
+  - altinn-notifications-sms
+  - altinn-profile

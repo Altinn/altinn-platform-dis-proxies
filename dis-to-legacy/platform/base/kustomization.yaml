@@ -1,0 +1,33 @@
+# The reusable proxy unit: one nginx pod that fronts one legacy service.
+#
+# Nothing in here is app-specific. The nginx config forwards every path verbatim
+# to the legacy cluster's ingress, which routes on path prefix -- that is what
+# makes "one shared config, no per-app variation" possible while still giving
+# each app its own pod, so one noisy app cannot starve another.
+#
+# What an overlay must supply:
+#   * a namespace
+#   * a MeshTLSAuthentication named 'allowed-clients'
+#   * the anchor Service, named after the legacy service
+#   * an HTTPRoute parented on that anchor, with this proxy as a backendRef
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Carried by the base so every consumer inherits it: kustomize accumulates
+# transformer configs up the chain, and a 'configurations:' file may not sit
+# outside the kustomization that names it.
+configurations:
+  - kustomizeconfig.yaml
+
+resources:
+  - serviceaccount.yaml
+  - service.yaml
+  - deployment.yaml
+  - authorization.yaml
+
+configMapGenerator:
+  # Hash-suffixed so that editing nginx.conf triggers a rollout.
+  - name: proxy-nginx
+    files:
+      - nginx.conf
+      - proxy.conf

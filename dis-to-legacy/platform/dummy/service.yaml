@@ -1,0 +1,17 @@
+# Backend 2: the in-cluster stand-in used to verify that weighting works.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubewrapper-dummy
+  labels:
+    app.kubernetes.io/name: kubewrapper-dummy
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: kubewrapper-dummy
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+      appProtocol: http

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy
+  labels:
+    app.kubernetes.io/name: proxy
+    app.kubernetes.io/part-of: dis-legacy-proxy
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: proxy
+      annotations:
+        linkerd.io/inject: enabled
+        # The upstream lives outside the mesh and outside the cluster; keep the
+        # sidecar out of the path for egress to the legacy ingress on 443.
+        config.linkerd.io/skip-outbound-ports: "443"
+    spec:
+      serviceAccountName: proxy
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          image: nginxinc/nginx-unprivileged:1.31-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+              readOnly: true
+            # Which legacy cluster to forward to. Supplied by the environment
+            # overlay, shared by every proxy pod in the namespace, and NOT
+            # name-prefixed -- one upstream per cluster, not per service.
+            # Shared proxying directives, included from the per-service
+            # location blocks. Not under conf.d, because these are
+            # location-level directives and conf.d is auto-included at http
+            # level, where they would be a syntax error.
+            - name: nginx-proxy
+              mountPath: /etc/nginx/proxy
+              readOnly: true
+            # Which base paths this service's proxy will forward. Per service,
+            # from the team's folder.
+            - name: allowed-paths
+              mountPath: /etc/nginx/allowed
+              readOnly: true
+            - name: upstream
+              mountPath: /etc/nginx/upstream
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: proxy-nginx
+            items:
+              - key: nginx.conf
+                path: default.conf
+        - name: nginx-proxy
+          configMap:
+            name: proxy-nginx
+            items:
+              - key: proxy.conf
+                path: proxy.conf
+        - name: allowed-paths
+          configMap:
+            name: allowed-paths
+        - name: upstream
+          configMap:
+            name: legacy-upstream
+        - name: cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}

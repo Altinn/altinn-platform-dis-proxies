@@ -1,0 +1,32 @@
+# EXAMPLE ONLY -- not applied by kustomize, and not the real values.
+#
+# The proxy expects a ConfigMap named 'legacy-upstream' in the namespace, with a
+# key 'upstream.conf' holding directives of this shape. It is mounted at
+# /etc/nginx/upstream/ and included from inside the proxy's location block, so
+# it may only contain directives valid there.
+#
+# It is kept out of this repo because it is the one file that names internal
+# infrastructure. Create it by hand from a local copy of this file, with the
+# real host substituted in:
+#
+#     kubectl create configmap legacy-upstream --from-file=upstream.conf=<file>
+#
+# One ConfigMap per cluster, shared by every proxy pod in the namespace -- the
+# target cluster is a property of the environment, not of a service.
+
+# proxy_pass WITHOUT a URI component: nginx forwards the original request URI
+# and query string unchanged. Do not append a path here, that would switch
+# nginx into rewrite mode.
+proxy_pass https://legacy-ingress.internal.example;
+
+# The legacy ingress routes on its own hostname, so rewrite Host. The caller's
+# original Host is preserved in X-Forwarded-Host by the shared config.
+proxy_set_header Host legacy-ingress.internal.example;
+
+# Upstream TLS, verified against the system trust store.
+proxy_ssl_server_name         on;
+proxy_ssl_name                legacy-ingress.internal.example;
+proxy_ssl_verify              on;
+proxy_ssl_verify_depth        3;
+proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+proxy_ssl_protocols           TLSv1.2 TLSv1.3;

@@ -1,0 +1,33 @@
+# Teaches kustomize about fields inside Linkerd CRDs that it otherwise cannot
+# see. Without this, namePrefix and label transformers silently skip them and
+# produce manifests that render cleanly but do not work.
+#
+# Written once. Nothing here changes when a service is added.
+
+# 1. A Server's podSelector is a label selector.
+#    Without this, 'labels: includeSelectors: true' updates Deployment and
+#    Service selectors but skips the Server, and two services in one namespace
+#    end up with Servers selecting each other's proxy pods.
+commonLabels:
+  - path: spec/podSelector/matchLabels
+    create: true
+    group: policy.linkerd.io
+    kind: Server
+
+# 2. An AuthorizationPolicy points at a Server and at a MeshTLSAuthentication
+#    BY NAME. Without this, namePrefix renames those resources and leaves the
+#    references behind, so the policy targets something that does not exist --
+#    which fails closed, i.e. every request gets 403.
+nameReference:
+  - kind: Server
+    group: policy.linkerd.io
+    fieldSpecs:
+      - path: spec/targetRef/name
+        group: policy.linkerd.io
+        kind: AuthorizationPolicy
+  - kind: MeshTLSAuthentication
+    group: policy.linkerd.io
+    fieldSpecs:
+      - path: spec/requiredAuthenticationRefs/name
+        group: policy.linkerd.io
+        kind: AuthorizationPolicy

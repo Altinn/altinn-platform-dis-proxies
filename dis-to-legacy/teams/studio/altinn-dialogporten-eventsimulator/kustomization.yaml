@@ -1,0 +1,12 @@
+# Everything about the 'altinn-dialogporten-eventsimulator' service lives in this folder.
+#
+# proxy/ is a nested kustomization on purpose: namePrefix must apply to the
+# shared proxy resources but NOT to the anchor Service, whose name has to stay
+# exactly 'altinn-dialogporten-eventsimulator' because that is what callers already use.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - proxy          # this service's own nginx pod, from the shared base
+  - anchor.yaml    # the address callers use
+  - httproute.yaml # the weights

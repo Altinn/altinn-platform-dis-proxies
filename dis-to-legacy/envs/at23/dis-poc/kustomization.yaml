@@ -1,0 +1,34 @@
+# WEIGHTS: dis-poc, environment at23.
+#
+# Shift traffic by editing the values below, or transiently with
+# 'kubectl patch httproute' against the live route.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../teams/dis-poc
+
+patches:
+  - target:
+      group: policy.linkerd.io
+      kind: HTTPRoute
+      name: kuberneteswrapper-kubernetes-api-wrapper
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 50
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
+        value: 50
+  # kubewrapper-two: not started.
+  - target:
+      group: policy.linkerd.io
+      kind: HTTPRoute
+      name: kubewrapper-two
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
+        value: 0

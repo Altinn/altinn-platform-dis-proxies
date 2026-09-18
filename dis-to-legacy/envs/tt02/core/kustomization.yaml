@@ -1,0 +1,64 @@
+# WEIGHTS: core, environment tt02.
+#
+# This file is core's alone. It is the review unit for shifting core's
+# traffic in tt02 -- CODEOWNERS points it at core, so other teams never have
+# to approve a rollout that is not theirs, and vice versa.
+#
+# Weights are relative, not percentages. backendRefs[0] is the legacy cluster
+# via the nginx proxy. Every service is at 100 -- nothing has migrated yet.
+#
+# When a service's second backend is uncommented in teams/core/<service>/
+# httproute.yaml, add the matching backendRefs[1] op below to give it a weight
+# in this environment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../teams/core
+
+patches:
+  # altinn-events: 100% to the legacy cluster.
+  - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-events}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      # - op: replace
+      #   path: /spec/rules/0/backendRefs/1/weight
+      #   value: 0
+  # altinn-notifications: 100% to the legacy cluster.
+  - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-notifications}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      # - op: replace
+      #   path: /spec/rules/0/backendRefs/1/weight
+      #   value: 0
+  # altinn-notifications-email: 100% to the legacy cluster.
+  - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-notifications-email}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      # - op: replace
+      #   path: /spec/rules/0/backendRefs/1/weight
+      #   value: 0
+  # altinn-notifications-sms: 100% to the legacy cluster.
+  - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-notifications-sms}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      # - op: replace
+      #   path: /spec/rules/0/backendRefs/1/weight
+      #   value: 0
+  # altinn-profile: 100% to the legacy cluster.
+  - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-profile}
+    patch: |
+      - op: replace
+        path: /spec/rules/0/backendRefs/0/weight
+        value: 100
+      # - op: replace
+      #   path: /spec/rules/0/backendRefs/1/weight
+      #   value: 0

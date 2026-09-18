@@ -1,0 +1,18 @@
+# Anchor Service: the address callers use. The name must match the legacy
+# service name exactly, so nothing on the calling side has to change.
+#
+# No selector, so it has no endpoints. It exists only to give the HTTPRoute a
+# parent -- all traffic goes to the weighted backends. Only meshed callers see
+# the split; an unmeshed one gets no endpoints and fails.
+apiVersion: v1
+kind: Service
+metadata:
+  name: altinn-notifications-sms
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
