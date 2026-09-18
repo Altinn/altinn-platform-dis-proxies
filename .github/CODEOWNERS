@@ -1,0 +1,32 @@
+# Code owners for the legacy-proxy shim.
+#
+# Last matching pattern wins, so the default owner comes first and the team
+# folders override it below. Each team owns its folder in BOTH places it exists:
+#
+#   dis-to-legacy/teams/<team>/       the service definitions, identical everywhere
+#   dis-to-legacy/envs/<env>/<team>/  that team's weights for one environment
+#
+# That pairing is the point: a team can shift its own traffic in one environment
+# without platform review, and platform keeps everything else -- platform/, the
+# env kustomizations that say which teams are present, and CI.
+
+# Default owner: everything not claimed by a team folder below.
+*                                       @Altinn/team-platform
+
+# autorisasjon
+/dis-to-legacy/teams/autorisasjon/      @altinn/team-access-management
+/dis-to-legacy/envs/*/autorisasjon/     @altinn/team-access-management
+
+# core
+/dis-to-legacy/teams/core/              @altinn/team-core
+/dis-to-legacy/envs/*/core/             @altinn/team-core
+
+# studio
+/dis-to-legacy/teams/studio/            @altinn/team-altinn-studio
+/dis-to-legacy/envs/*/studio/           @altinn/team-altinn-studio
+
+# dis-poc is the platform team's own proof of concept; it routes onto the canary
+# in platform/dummy rather than a real migrated app. Covered by the default
+# owner above, listed here so the set of team folders stays complete.
+/dis-to-legacy/teams/dis-poc/           @Altinn/team-platform
+/dis-to-legacy/envs/*/dis-poc/          @Altinn/team-platform
