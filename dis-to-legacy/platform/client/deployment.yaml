@@ -1,0 +1,46 @@
+# Meshed client pod for manual testing.
+#
+# This is the pod you exec into to call the anchor Service. It MUST be meshed:
+# Linkerd applies outbound policy in the client's proxy, so an unmeshed pod
+# would never see the HTTPRoute split -- and because the anchor Service has no
+# endpoints, an unmeshed call fails outright rather than falling through.
+#
+# A Deployment rather than a bare Pod so it comes back after a node drain.
+# It just sleeps; there is no service in front of it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poc-client
+  labels:
+    app.kubernetes.io/name: poc-client
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: poc-client
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: poc-client
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: poc-client
+      # netshoot runs as root and needs NET_RAW for tcpdump, so this pod
+      # deliberately does not carry the restricted securityContext used by the
+      # proxy and dummy workloads. If the anchor namespace is ever put under a
+      # "restricted" Pod Security policy, this is the manifest that will be
+      # rejected -- swap the image for curlimages/curl if that happens.
+      containers:
+        - name: netshoot
+          image: nicolaka/netshoot:v0.13
+          imagePullPolicy: IfNotPresent
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      terminationGracePeriodSeconds: 5

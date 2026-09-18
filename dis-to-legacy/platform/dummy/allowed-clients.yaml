@@ -1,0 +1,16 @@
+# Who may call the canary backend.
+#
+# The canary owns its own allow-list rather than borrowing a service's. With one
+# migrated service kustomize could resolve a bare 'allowed-clients' reference to
+# that service's, but as soon as a second service exists there are two
+# candidates, kustomize cannot disambiguate, and the reference is left dangling
+# -- which fails closed, so the canary 403s every request.
+#
+# Not name-prefixed: the canary is a single shared backend, not per service.
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: dummy-allowed-clients
+spec:
+  identities:
+    - "poc-client.default.serviceaccount.identity.linkerd.cluster.local"

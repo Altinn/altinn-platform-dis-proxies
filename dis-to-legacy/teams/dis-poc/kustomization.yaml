@@ -1,0 +1,23 @@
+# The POC: 2 services proving the shim end to end.
+#
+# Unlike the other team folders, these two route onto the canary in
+# platform/dummy rather than a real migrated app. The canary and the test client
+# (platform/client) are NOT composed in here -- they are deployed separately,
+# which is what keeps a service folder readable on its own.
+#
+# Renders into the same shared namespace as every other team folder; the
+# namespace itself is set by the environment overlay in envs/, not here.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: dis-legacy-proxy
+    includeSelectors: false
+    includeTemplates: true
+
+# The namespace and the per-cluster upstream come from the environment overlay
+# in envs/, which is the deployable unit. This folder is composed into one.
+resources:
+  - kuberneteswrapper-kubernetes-api-wrapper
+  - kubewrapper-two

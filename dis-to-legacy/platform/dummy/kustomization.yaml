@@ -1,0 +1,42 @@
+# The synthetic canary: a stand-in backend inside the new cluster, used to prove
+# the routing path works before any real traffic is shifted onto it.
+#
+# DEPLOYED SEPARATELY, on its own:
+#
+#     kubectl kustomize dis-to-legacy/platform/dummy | kubectl apply -f -
+#
+# It is deliberately NOT part of any environment or team overlay, and it patches
+# nothing. An earlier version was a Component that appended itself to every
+# HTTPRoute it found, which meant a service could not be read on its own -- its
+# real backend list only appeared after kustomize had rewritten it. Services now
+# reference this backend explicitly, like they would any other.
+#
+# In a real migration the second backendRef is the team's own Service in the new
+# cluster. This exists so the POC has something to shift onto before that is
+# built.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Its own namespace, not the anchors'. A migrated app always lands in a
+# namespace of its own, so the canary does too -- that is what makes the
+# cross-namespace backendRef in the routes a real test rather than a formality.
+namespace: test-proxy-vga-app
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: dis-legacy-proxy
+    includeSelectors: false
+    includeTemplates: true
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - allowed-clients.yaml
+  - service.yaml
+  - deployment.yaml
+  - authorization.yaml
+
+configMapGenerator:
+  - name: kubewrapper-dummy-nginx
+    files:
+      - nginx.conf

@@ -1,0 +1,10 @@
+# The canary's own namespace, modelling a migrated application.
+#
+# Real migrated apps land in their own namespace (some grouped together), never
+# alongside the anchors. Putting the canary here too means the POC exercises the
+# cross-namespace backendRef that production will actually use, rather than a
+# same-namespace shortcut that proves nothing about it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test-proxy-vga-app

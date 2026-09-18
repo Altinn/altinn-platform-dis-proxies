@@ -1,0 +1,30 @@
+# This service's own nginx pod, instantiated from the shared base.
+#
+# Same config as every other service -- the base is app-agnostic and forwards
+# all paths verbatim. Only the names and labels differ, so that one service's
+# traffic cannot land on another's pods.
+#
+# namePrefix gives 'altinn-resource-registry-proxy'; the label keeps this pod out of every
+# other service's Service and Server selectors.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../../platform/base
+  # This service's allow-list. Prefixed along with everything else here, so it
+  # cannot collide with another service's in the shared namespace.
+  - allowed-clients.yaml
+
+configMapGenerator:
+  # The base paths this proxy will forward. Prefixed and hash-suffixed with
+  # everything else here, so editing it rolls only this service's pods.
+  - name: allowed-paths
+    files:
+      - allowed-paths.conf
+
+namePrefix: altinn-resource-registry-
+
+labels:
+  - pairs:
+      dis.altinn.no/proxy-for: altinn-resource-registry
+    includeSelectors: true

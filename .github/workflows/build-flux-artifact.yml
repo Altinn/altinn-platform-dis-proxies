@@ -1,0 +1,133 @@
+# Publishes dis-to-legacy/ as a Flux OCI artifact.
+#
+# ONE artifact holds the whole tree -- platform/, teams/ and envs/ together --
+# rather than one per environment. The overlays reference ../../../teams/ and
+# ../../../../platform/base, so an artifact containing only envs/<env>/ would
+# have nothing to build against. Each cluster picks its own overlay instead, by
+# setting path: ./envs/<env> on its Flux Kustomization. See the README.
+#
+# Every push to main publishes two tags: the short commit sha, which is
+# immutable and what you roll back to, and 'main', which moves and is what the
+# clusters reconcile.
+name: Build Flux Artifact
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - dis-to-legacy/**
+      - .github/workflows/build-flux-artifact.yml
+      - .github/scripts/check-invariants.py
+  # Verify only -- the publish job is skipped for pull requests.
+  pull_request:
+    paths:
+      - dis-to-legacy/**
+      - .github/workflows/build-flux-artifact.yml
+      - .github/scripts/check-invariants.py
+  workflow_dispatch:
+
+env:
+  REGISTRY: altinncr.azurecr.io
+  REPOSITORY: dis/legacy-proxies
+  # What goes into the artifact: the whole deployable tree, so that the relative
+  # paths between envs/, teams/ and platform/ still resolve in-cluster.
+  ARTIFACT_PATH: ./dis-to-legacy
+
+permissions:
+  id-token: write
+  contents: read
+
+# Never publish two artifacts at once: the moving tag would end up on whichever
+# job happened to finish last, not on the newer commit.
+concurrency:
+  group: flux-artifact-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Rendering alone is not enough. Every invariant in CLAUDE.md renders
+      # cleanly, applies cleanly, and then misbehaves in the cluster -- a
+      # namePrefix that misses a policy reference fails closed with 403 on
+      # everything, and that has already happened twice. The script renders
+      # every overlay and checks the rendered output.
+      - name: Render every overlay and check the silent-failure invariants
+        run: ./.github/scripts/check-invariants.py
+
+      # These manifests are meant to be publishable. The legacy ingress host is
+      # supplied out of band and lives only in a cluster ConfigMap, so no real
+      # hostname should ever appear under dis-to-legacy/. The pattern is
+      # deliberately narrow: the dis.altinn.no/proxy-for label is legitimate and
+      # must not trip this.
+      - name: Check no internal hostname has been committed
+        run: |
+          if grep -rIn --exclude-dir=.git -E '\.altinn\.cloud' dis-to-legacy/; then
+            echo "::error::An internal hostname is committed under dis-to-legacy/."
+            echo "::error::It belongs in the out-of-band 'legacy-upstream' ConfigMap."
+            exit 1
+          fi
+          echo "No internal hostnames found."
+
+  publish:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Prepare Job for Pushing OCI Artifacts to Azure Container Registry
+        id: setup_flux_acr
+        uses: dis-way/actions/flux/setup-flux-acr@8a0034943836baaa34c7e220854f950ce3a5f370 # main
+        with:
+          azure_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID_ADMINSERVICES_PROD }}
+          azure_app_id: ${{ secrets.AZURE_CLIENT_ID_ADMINSERVICES_PROD }}
+          azure_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Build and push the artifact
+        run: |
+          set -euo pipefail
+
+          ARTIFACT="oci://${REGISTRY}/${REPOSITORY}"
+          SHORT_SHA="$(git rev-parse --short HEAD)"
+
+          # The immutable tag. Push to this first, so that a failure part way
+          # through never leaves the moving tag pointing at a half-built push.
+          #
+          # --reproducible sets file timestamps from the commit, so an unchanged
+          # tree produces an identical digest and Flux does not see a spurious
+          # revision change.
+          #
+          # GITHUB_REF_NAME rather than 'git branch --show-current': actions/
+          # checkout leaves a detached HEAD, where the latter returns empty.
+          flux push artifact "${ARTIFACT}:${SHORT_SHA}" \
+            --provider=azure \
+            --reproducible \
+            --path="${ARTIFACT_PATH}" \
+            --source="$(git config --get remote.origin.url)" \
+            --revision="${GITHUB_REF_NAME}@sha1:$(git rev-parse HEAD)"
+
+          # The moving tag the clusters watch. Named after the branch, so a
+          # manual run from a feature branch publishes that branch's name and
+          # cannot disturb what the clusters are reconciling.
+          flux tag artifact "${ARTIFACT}:${SHORT_SHA}" \
+            --provider=azure \
+            --tag "${GITHUB_REF_NAME}"
+
+          {
+            echo "### Flux artifact published"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Artifact | \`${REGISTRY}/${REPOSITORY}\` |"
+            echo "| Immutable tag | \`${SHORT_SHA}\` |"
+            echo "| Moving tag | \`${GITHUB_REF_NAME}\` |"
+            echo "| Revision | \`${GITHUB_REF_NAME}@sha1:$(git rev-parse HEAD)\` |"
+          } >> "${GITHUB_STEP_SUMMARY}"

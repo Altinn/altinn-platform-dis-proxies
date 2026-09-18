@@ -1,0 +1,32 @@
+# Environment: at24.
+#
+# Composes one weights file per team. This file itself carries no weights, so a
+# team shifting traffic touches only its own folder and CODEOWNERS can grant
+# each team approval over its own rollouts:
+#
+#     dis-to-legacy/envs/*/studio/   @altinn/studio
+#
+# The two things that differ between environments:
+#   1. the per-team weights, in the folders below
+#   2. which legacy cluster to forward to -- NOT in this repo, see below
+#
+# Everything else comes from platform/ and teams/ and is identical everywhere.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Set here and nowhere else. Every migrated service lands in this one namespace,
+# mirroring the legacy cluster's single namespace -- that is what lets callers
+# keep using bare service names with no config change. teams/ deliberately does
+# not set it, so a team folder carries nothing environment-specific.
+namespace: default
+
+# EXTERNAL DEPENDENCIES. Neither is created by this repo:
+#   1. the namespace above
+#   2. a ConfigMap named 'legacy-upstream' with a key 'upstream.conf'. It names
+#      the legacy ingress for this cluster and is deliberately kept out, so that
+#      everything here is safe to publish.
+resources:
+  # One folder per team: each holds that team's weights for this environment.
+  - autorisasjon
+  - core
+  - studio

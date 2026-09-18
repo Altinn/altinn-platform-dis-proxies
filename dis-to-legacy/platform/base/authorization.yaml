@@ -1,0 +1,156 @@
+# Linkerd inbound authorization for the proxy.
+#
+# This cluster runs a deny-by-default inbound policy, so a meshed pod refuses
+# any connection it has not been told to accept and the caller gets HTTP 403.
+# Without this, every request to the proxy is rejected even though the HTTPRoute
+# resolves and routes correctly.
+#
+#   Server              marks a port on a set of pods as policy-controlled
+#   AuthorizationPolicy binds that Server to a set of trusted identities
+#
+# CONTRACT: this layer expects a MeshTLSAuthentication named 'allowed-clients'
+# to exist in the namespace. The overlay owns it, because which consumers are
+# allowed in is a per-namespace decision, not a property of the proxy.
+#
+# API versions: Server is v1beta3 -- the cluster warns that v1beta1 is
+# deprecated, even though Linkerd's published reference still documents v1beta1.
+# AuthorizationPolicy, MeshTLSAuthentication and NetworkAuthentication are
+# v1alpha1, which is current. Check what your cluster serves with:
+#   kubectl get crd servers.policy.linkerd.io \
+#     -o jsonpath='{range .spec.versions[?(@.served)]}{.name}{"\n"}{end}'
+#
+# PROBES -- read this before changing the ports below.
+#
+# Creating a Server replaces Linkerd's automatic probe allowance for that port.
+# From the Linkerd reference: "if you create a Server resource for a port which
+# handles probes, you will need to explicitly create an authorization to allow
+# those probe requests". The automatic authorizations "apply only when no Server
+# is configured for a port, or when a Server is configured but no HTTPRoutes or
+# GRPCRoute are configured for that Server."
+#
+# This POC dodges that on two counts, both deliberate:
+#
+#   1. The Server below covers port 'http' (8080) only. Probes target the
+#      separate 'health' port (8081), which no Server covers, so it keeps the
+#      default Server and its automatic probe allowance.
+#   2. The HTTPRoute's parentRef is a Service, not a Server -- it is outbound
+#      routing policy. No inbound route matches this Server, so even for 8080
+#      the automatic authorizations are not suppressed.
+#
+# So do NOT collapse the health listener onto port 8080, and do NOT point the
+# Server at the 'health' port, without adding the probe authorization at the
+# bottom of this file. If you do, pods will run but never go Ready.
+
+# Linkerd inbound authorization.
+#
+# This cluster runs a deny-by-default inbound policy, so a meshed pod refuses
+# any connection it has not been told to accept and the caller gets HTTP 403.
+# Without the resources below, every request to the two backends is rejected
+# even though the HTTPRoute resolves and routes correctly.
+#
+# Three pieces:
+#   Server               marks a port on a set of pods as policy-controlled
+#   MeshTLSAuthentication names the client identities we trust
+#   AuthorizationPolicy   binds the two together
+#
+# API versions: Server is v1beta3 -- the cluster warns that v1beta1 is
+# deprecated, even though Linkerd's published reference still documents v1beta1.
+# AuthorizationPolicy, MeshTLSAuthentication and NetworkAuthentication are
+# v1alpha1, which is current. Check what your cluster serves with:
+#   kubectl get crd servers.policy.linkerd.io \
+#     -o jsonpath='{range .spec.versions[?(@.served)]}{.name}{"\n"}{end}'
+#
+# PROBES -- read this before changing the ports below.
+#
+# Creating a Server replaces Linkerd's automatic probe allowance for that port.
+# From the Linkerd reference: "if you create a Server resource for a port which
+# handles probes, you will need to explicitly create an authorization to allow
+# those probe requests". The automatic authorizations "apply only when no Server
+# is configured for a port, or when a Server is configured but no HTTPRoutes or
+# GRPCRoute are configured for that Server."
+#
+# This POC dodges that on two counts, both deliberate:
+#
+#   1. The Servers below cover port 'http' (8080) only. Probes target the
+#      separate 'health' port (8081), which no Server covers, so it keeps the
+#      default Server and its automatic probe allowance.
+#   2. The HTTPRoute's parentRef is a Service, not a Server -- it is outbound
+#      routing policy. No inbound route matches these Servers, so even for 8080
+#      the automatic authorizations are not suppressed.
+#
+# So do NOT collapse the health listener onto port 8080, and do NOT point the
+# Servers at the 'health' port, without adding the probe authorization at the
+# bottom of this file. If you do, pods will run but never go Ready.
+
+apiVersion: policy.linkerd.io/v1beta3
+kind: Server
+metadata:
+  name: proxy-http
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: proxy
+  port: http
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: proxy-http
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: proxy-http
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: allowed-clients
+
+# ---------------------------------------------------------------------------
+# PROBE AUTHORIZATION -- not needed by this POC, kept here because real
+# workloads migrating into this cluster will need it.
+#
+# Most applications serve traffic and probes on the SAME port. The moment a
+# Server covers that port, kubelet probes are denied and pods never go Ready.
+# The fix is to authorize the node network for that Server.
+#
+# Left commented out on purpose: applying it would let anything on those
+# networks reach port 8080 unauthenticated, which is wider than the named
+# ServiceAccount policy above. Uncomment only for a Server that actually
+# covers a probe port, and narrow the CIDR to the real node subnet rather
+# than using the broad defaults below.
+#
+# Linkerd also has an audit mode: set 'accessPolicy: audit' on a Server (the
+# field exists in v1beta3) to log what would be denied instead of denying it.
+# That is the safe way to roll policy out to a real workload.
+# ---------------------------------------------------------------------------
+#
+# apiVersion: policy.linkerd.io/v1alpha1
+# kind: NetworkAuthentication
+# metadata:
+#   name: kubelet-probes
+#   namespace: default
+# spec:
+#   networks:
+#     # Narrow this to the AKS node subnet. These are Linkerd's default
+#     # clusterNetworks and are much broader than necessary.
+#     - cidr: 10.0.0.0/8
+#     - cidr: 100.64.0.0/10
+#     - cidr: 172.16.0.0/12
+#     - cidr: 192.168.0.0/16
+# ---
+# apiVersion: policy.linkerd.io/v1alpha1
+# kind: AuthorizationPolicy
+# metadata:
+#   name: proxy-probes
+#   namespace: default
+# spec:
+#   targetRef:
+#     group: policy.linkerd.io
+#     kind: Server
+#     name: proxy-http
+#   requiredAuthenticationRefs:
+#     - group: policy.linkerd.io
+#       kind: NetworkAuthentication
+#       name: kubelet-probes

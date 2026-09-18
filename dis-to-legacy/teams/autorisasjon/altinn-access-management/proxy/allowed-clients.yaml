@@ -1,0 +1,28 @@
+# Who may call 'altinn-access-management'. THIS TEAM OWNS THIS FILE.
+#
+# Identity comes from the caller's ServiceAccount. Because every migrated
+# service shares one namespace, callers are named:
+#   <their-serviceaccount>.default.serviceaccount.identity.linkerd.cluster.local
+#
+# A whole namespace can be admitted with a wildcard:
+#   *.default.serviceaccount.identity.linkerd.cluster.local
+#
+# It lives under proxy/ because namePrefix has to reach it: the name below
+# becomes 'altinn-access-management-allowed-clients', which is what keeps one
+# service's allow-list from colliding with another's in the shared namespace.
+# The AuthorizationPolicy's reference follows the rename automatically, via the
+# nameReference rules in platform/base/kustomizeconfig.yaml.
+#
+# Leave this out and the policy references a MeshTLSAuthentication that does not
+# exist, which fails closed: every caller gets 403.
+#
+# PLACEHOLDER BELOW. The identity named is deliberately one that no workload
+# presents, so this service currently admits nobody and every caller gets 403.
+# Replace it with this service's real callers before routing traffic here.
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: allowed-clients
+spec:
+  identities:
+    - "unassigned-placeholder.default.serviceaccount.identity.linkerd.cluster.local"

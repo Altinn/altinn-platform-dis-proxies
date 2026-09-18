@@ -1,0 +1,13 @@
+# Meshed client pod to exec into and make test calls from.
+#
+# Purely test tooling: no Service, nothing depends on it. Drop this component
+# from an overlay and everything else still works.
+#
+# Its identity must appear in the namespace's 'allowed-clients'
+# MeshTLSAuthentication, or the backends will answer 403.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - serviceaccount.yaml
+  - deployment.yaml

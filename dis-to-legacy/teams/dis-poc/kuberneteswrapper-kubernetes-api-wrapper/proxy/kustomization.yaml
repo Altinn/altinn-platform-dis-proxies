@@ -1,0 +1,27 @@
+# This service's own nginx pod, instantiated from the shared base.
+#
+# The prefix is 'kubewrapper-' rather than the full legacy service name, purely
+# to keep resource names readable. It only has to be unique within the
+# namespace; it does not have to match the anchor.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../../../platform/base
+  # This service's allow-list. Prefixed along with everything else here, so it
+  # cannot collide with another service's in the shared namespace.
+  - allowed-clients.yaml
+
+configMapGenerator:
+  # The base paths this proxy will forward. Prefixed and hash-suffixed with
+  # everything else here, so editing it rolls only this service's pods.
+  - name: allowed-paths
+    files:
+      - allowed-paths.conf
+
+namePrefix: kubewrapper-
+
+labels:
+  - pairs:
+      dis.altinn.no/proxy-for: kuberneteswrapper-kubernetes-api-wrapper
+    includeSelectors: true
