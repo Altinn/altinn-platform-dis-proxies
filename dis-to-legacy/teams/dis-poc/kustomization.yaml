@@ -20,4 +20,3 @@ labels:
 # in envs/, which is the deployable unit. This folder is composed into one.
 resources:
   - kuberneteswrapper-kubernetes-api-wrapper
-  - kubewrapper-two
