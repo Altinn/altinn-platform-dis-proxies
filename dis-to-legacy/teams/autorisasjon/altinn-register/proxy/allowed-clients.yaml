@@ -25,4 +25,4 @@ metadata:
   name: allowed-clients
 spec:
   identities:
-    - "unassigned-placeholder.default.serviceaccount.identity.linkerd.cluster.local"
+    - "app.product-accessmanagement.serviceaccount.identity.linkerd.cluster.local"
