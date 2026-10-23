@@ -25,4 +25,4 @@ metadata:
   name: allowed-clients
 spec:
   identities:
-    - "app.product-access-management.serviceaccount.identity.linkerd.cluster.local"
+    - "am-api.product-access-management.serviceaccount.identity.linkerd.cluster.local"
