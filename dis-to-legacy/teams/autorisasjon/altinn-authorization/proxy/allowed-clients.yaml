@@ -26,3 +26,4 @@ metadata:
 spec:
   identities:
     - "am-api.product-access-management.serviceaccount.identity.linkerd.cluster.local"
+    - "authn-api.product-authentication.serviceaccount.identity.linkerd.cluster.local"
