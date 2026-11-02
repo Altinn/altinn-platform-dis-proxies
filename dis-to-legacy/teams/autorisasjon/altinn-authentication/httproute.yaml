@@ -29,8 +29,8 @@ spec:
           port: 80
           weight: 100
         
-        - name: product-altinn-authentication
-          namespace: authn-api
+        - name: authn-api
+          namespace: product-authentication
           port: 80
           weight: 0
 
