@@ -28,6 +28,11 @@ spec:
         - name: altinn-resource-registry-proxy
           port: 80
           weight: 100
+        
+        - name: rr-api
+          namespace: product-resource-registry
+          port: 80
+          weight: 0
 
         # The migrated app, in ITS OWN namespace. Deployed by the team's normal
         # pipeline, not created here. It keeps its real name: the anchor above
@@ -39,7 +44,3 @@ spec:
         # caller's, since this leg never passes through nginx. See invariant 8
         # in CLAUDE.md.
 
-        # - name: altinn-resource-registry
-        #   namespace: <migrated-resource-registry-namespace>
-        #   port: 80
-        #   weight: 0
