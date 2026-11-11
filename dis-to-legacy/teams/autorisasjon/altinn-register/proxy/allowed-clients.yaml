@@ -29,3 +29,4 @@ spec:
     - "authz-api.product-authorization.serviceaccount.identity.linkerd.cluster.local"
     - "authn-api.product-authentication.serviceaccount.identity.linkerd.cluster.local"
     - "rr-api.product-resource-registry.serviceaccount.identity.linkerd.cluster.local"
+    - "altinn-profile.product-profile.serviceaccount.identity.linkerd.cluster.local"
