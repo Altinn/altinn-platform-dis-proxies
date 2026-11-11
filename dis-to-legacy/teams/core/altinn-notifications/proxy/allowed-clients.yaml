@@ -27,3 +27,4 @@ spec:
   identities:
     - "authn-api.product-authentication.serviceaccount.identity.linkerd.cluster.local"
     - "am-api.product-access-management.serviceaccount.identity.linkerd.cluster.local"
+    - "altinn-profile.product-profile.serviceaccount.identity.linkerd.cluster.local"
