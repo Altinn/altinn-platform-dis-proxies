@@ -22,10 +22,10 @@ patches:
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
-        value: 50
+        value: 0
       - op: replace
         path: /spec/rules/0/backendRefs/1/weight
-        value: 50
+        value: 100
   # altinn-authentication: 100% to the legacy cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-authentication}
     patch: |
