@@ -17,34 +17,34 @@ resources:
   - ../../../teams/autorisasjon
 
 patches:
-  # altinn-access-management: 100% to the legacy cluster.
+  # altinn-access-management: 100% to the DIS cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-access-management}
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
+        value: 0
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
         value: 100
-      # - op: replace
-      #   path: /spec/rules/0/backendRefs/1/weight
-      #   value: 0
-  # altinn-authentication: 100% to the legacy cluster.
+  # altinn-authentication: 100% to the DIS cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-authentication}
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
+        value: 0
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
         value: 100
-      # - op: replace
-      #   path: /spec/rules/0/backendRefs/1/weight
-      #   value: 0
-  # altinn-authorization: 100% to the legacy cluster.
+  # altinn-authorization: 100% to the DIS cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-authorization}
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
+        value: 0
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
         value: 100
-      # - op: replace
-      #   path: /spec/rules/0/backendRefs/1/weight
-      #   value: 0
-  # altinn-register: 100% to the legacy cluster.
+  # altinn-register: 100% to the Legacy cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-register}
     patch: |
       - op: replace
@@ -53,12 +53,12 @@ patches:
       # - op: replace
       #   path: /spec/rules/0/backendRefs/1/weight
       #   value: 0
-  # altinn-resource-registry: 100% to the legacy cluster.
+  # altinn-resource-registry: 100% to the DIS cluster.
   - target: {group: policy.linkerd.io, kind: HTTPRoute, name: altinn-resource-registry}
     patch: |
       - op: replace
         path: /spec/rules/0/backendRefs/0/weight
+        value: 0
+      - op: replace
+        path: /spec/rules/0/backendRefs/1/weight
         value: 100
-      # - op: replace
-      #   path: /spec/rules/0/backendRefs/1/weight
-      #   value: 0
